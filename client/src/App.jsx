@@ -5,6 +5,8 @@ import SearchForm from './components/SearchForm';
 import TravelPlan from './components/TravelPlan';
 import LoadingSpinner from './components/LoadingSpinner';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 // ─── Recent Searches helpers ───────────────────────────────────────
 const RECENTS_KEY = 'aitrip_recents';
 const getRecents = () => { try { return JSON.parse(localStorage.getItem(RECENTS_KEY)) || []; } catch { return []; } };
@@ -38,7 +40,7 @@ function App() {
     setTravelPlan(null);
 
     try {
-      const response = await axios.post('/api/travel/plan', { source, destination }, {
+      const response = await axios.post(`${API_BASE}/api/travel/plan`, { source, destination }, {
         timeout: 60000
       });
       setTravelPlan(response.data.data);

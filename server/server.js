@@ -27,7 +27,8 @@ app.use('/api/', apiLimiter);
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
   'http://localhost:3000',
-  'http://127.0.0.1:5173'
+  'http://127.0.0.1:5173',
+  'https://samariium.github.io'
 ];
 app.use(cors({
   origin: (origin, callback) => {

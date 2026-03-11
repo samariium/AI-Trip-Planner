@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const WeatherCard = ({ destination }) => {
   const [weather, setWeather] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,7 @@ const WeatherCard = ({ destination }) => {
     const fetchWeather = async () => {
       try {
         const { data } = await axios.get(
-          `/api/travel/weather?location=${encodeURIComponent(destination)}`
+          `${API_BASE}/api/travel/weather?location=${encodeURIComponent(destination)}`
         );
         setWeather(data.data);
       } catch {
