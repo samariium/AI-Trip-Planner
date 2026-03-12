@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
@@ -62,33 +63,42 @@ const ChipGroup = ({ label, options, value, onChange, disabled }) => (
   </div>
 );
 
-/* Location input with Nominatim autocomplete */
+/* Location input with Nominatim autocomplete — dropdown rendered via Portal
+   so it is never clipped by backdrop-filter / overflow on parent elements */
 const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dropPos, setDropPos] = useState({ top: 0, left: 0, width: 0 });
   const timerRef = useRef(null);
-  const wrapRef = useRef(null);
+  const wrapRef  = useRef(null);
+  const inputRef = useRef(null);
+
+  const updatePos = useCallback(() => {
+    if (!inputRef.current) return;
+    const r = inputRef.current.getBoundingClientRect();
+    setDropPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX, width: r.width });
+  }, []);
 
   const fetchSuggestions = useCallback(async (q) => {
     if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
     setLoading(true);
     try {
       const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6&accept-language=en`;
-      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const res = await fetch(url);
       const data = await res.json();
       const items = data.map(r => ({
         label: r.display_name,
-        short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county, r.address?.country].filter(Boolean).join(', '),
+        short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county, r.address?.country].filter(Boolean).join(', ') || r.display_name.split(',')[0],
       }));
       setSuggestions(items);
-      setOpen(items.length > 0);
+      if (items.length > 0) { updatePos(); setOpen(true); }
     } catch {
       setSuggestions([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updatePos]);
 
   const handleChange = (e) => {
     const v = e.target.value;
@@ -103,6 +113,15 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
     setOpen(false);
   };
 
+  /* Re-position on scroll / resize */
+  useEffect(() => {
+    if (!open) return;
+    const onScroll = () => updatePos();
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => { window.removeEventListener('scroll', onScroll, true); window.removeEventListener('resize', onScroll); };
+  }, [open, updatePos]);
+
   /* Close on outside click */
   useEffect(() => {
     const handler = (e) => {
@@ -112,6 +131,25 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const dropdown = open && suggestions.length > 0 && createPortal(
+    <ul
+      className="loc-dropdown"
+      role="listbox"
+      style={{ position: 'absolute', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 99999 }}
+    >
+      {suggestions.map((s, i) => (
+        <li key={i} className="loc-option" role="option" onMouseDown={() => handleSelect(s)}>
+          <span className="loc-pin">📍</span>
+          <span className="loc-option-text">
+            <span className="loc-short">{s.short}</span>
+            <span className="loc-full">{s.label}</span>
+          </span>
+        </li>
+      ))}
+    </ul>,
+    document.body
+  );
+
   return (
     <div className="search-field location-field" ref={wrapRef}>
       <label className="search-label" htmlFor={id}>
@@ -119,37 +157,21 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
       </label>
       <div className="location-input-wrap">
         <input
+          ref={inputRef}
           id={id}
           type="text"
           className="search-input"
           placeholder={placeholder}
           value={value}
           onChange={handleChange}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          onFocus={() => { if (suggestions.length > 0) { updatePos(); setOpen(true); } }}
           disabled={disabled}
           autoComplete="off"
           maxLength={120}
         />
         {loading && <span className="loc-spinner" />}
       </div>
-      {open && suggestions.length > 0 && (
-        <ul className="loc-dropdown" role="listbox">
-          {suggestions.map((s, i) => (
-            <li
-              key={i}
-              className="loc-option"
-              role="option"
-              onMouseDown={() => handleSelect(s)}
-            >
-              <span className="loc-pin">📍</span>
-              <span className="loc-option-text">
-                <span className="loc-short">{s.short}</span>
-                <span className="loc-full">{s.label}</span>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {dropdown}
     </div>
   );
 };
