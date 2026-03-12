@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 
@@ -16,29 +16,31 @@ const calcDays = (from, to) => {
 
 const fmt = (dateStr) => {
   if (!dateStr) return '';
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 };
 
 const TRAVELLER_TYPES = [
-  { value: 'solo', label: 'Solo', icon: 'ðŸ§³' },
-  { value: 'couple', label: 'Couple', icon: 'ðŸ’‘' },
-  { value: 'family', label: 'Family', icon: 'ðŸ‘¨â€ðŸ‘©â€ðŸ‘§' },
-  { value: 'backpacker', label: 'Backpacker', icon: 'ðŸŽ’' },
-  { value: 'business', label: 'Business', icon: 'ðŸ’¼' },
+  { value: 'solo', label: 'Solo', icon: '🧳' },
+  { value: 'couple', label: 'Couple', icon: '💑' },
+  { value: 'family', label: 'Family', icon: '👨‍👩‍👧' },
+  { value: 'backpacker', label: 'Backpacker', icon: '🎒' },
+  { value: 'business', label: 'Business', icon: '💼' },
 ];
 
 const BUDGET_LEVELS = [
-  { value: 'budget', label: 'Budget', icon: 'ðŸ’¸' },
-  { value: 'midrange', label: 'Mid-Range', icon: 'ðŸ’³' },
-  { value: 'luxury', label: 'Luxury', icon: 'ðŸ’Ž' },
+  { value: 'budget', label: 'Budget', icon: '💸' },
+  { value: 'midrange', label: 'Mid-Range', icon: '💳' },
+  { value: 'luxury', label: 'Luxury', icon: '💎' },
 ];
 
 const TRIP_PURPOSES = [
-  { value: 'adventure', label: 'Adventure', icon: 'ðŸ§—' },
-  { value: 'relaxation', label: 'Relaxation', icon: 'ðŸ–ï¸' },
-  { value: 'cultural', label: 'Cultural', icon: 'ðŸ›ï¸' },
-  { value: 'pilgrimage', label: 'Pilgrimage', icon: 'ðŸ•Œ' },
-  { value: 'honeymoon', label: 'Honeymoon', icon: 'ðŸ’' },
+  { value: 'adventure', label: 'Adventure', icon: '🧗' },
+  { value: 'relaxation', label: 'Relaxation', icon: '🏖️' },
+  { value: 'cultural', label: 'Cultural', icon: '🏛️' },
+  { value: 'pilgrimage', label: 'Pilgrimage', icon: '🕌' },
+  { value: 'honeymoon', label: 'Honeymoon', icon: '💍' },
 ];
 
 const ChipGroup = ({ label, options, value, onChange, disabled }) => (
@@ -59,6 +61,98 @@ const ChipGroup = ({ label, options, value, onChange, disabled }) => (
     </div>
   </div>
 );
+
+/* Location input with Nominatim autocomplete */
+const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled }) => {
+  const [suggestions, setSuggestions] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef(null);
+  const wrapRef = useRef(null);
+
+  const fetchSuggestions = useCallback(async (q) => {
+    if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
+    setLoading(true);
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6&accept-language=en`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      const data = await res.json();
+      const items = data.map(r => ({
+        label: r.display_name,
+        short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county, r.address?.country].filter(Boolean).join(', '),
+      }));
+      setSuggestions(items);
+      setOpen(items.length > 0);
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    onChange(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => fetchSuggestions(v), 350);
+  };
+
+  const handleSelect = (item) => {
+    onChange(item.short || item.label);
+    setSuggestions([]);
+    setOpen(false);
+  };
+
+  /* Close on outside click */
+  useEffect(() => {
+    const handler = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="search-field location-field" ref={wrapRef}>
+      <label className="search-label" htmlFor={id}>
+        <span>{icon}</span> {label}
+      </label>
+      <div className="location-input-wrap">
+        <input
+          id={id}
+          type="text"
+          className="search-input"
+          placeholder={placeholder}
+          value={value}
+          onChange={handleChange}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          disabled={disabled}
+          autoComplete="off"
+          maxLength={120}
+        />
+        {loading && <span className="loc-spinner" />}
+      </div>
+      {open && suggestions.length > 0 && (
+        <ul className="loc-dropdown" role="listbox">
+          {suggestions.map((s, i) => (
+            <li
+              key={i}
+              className="loc-option"
+              role="option"
+              onMouseDown={() => handleSelect(s)}
+            >
+              <span className="loc-pin">📍</span>
+              <span className="loc-option-text">
+                <span className="loc-short">{s.short}</span>
+                <span className="loc-full">{s.label}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 const SearchForm = ({ onSearch, loading }) => {
   const [source, setSource] = useState('');
@@ -100,27 +194,21 @@ const SearchForm = ({ onSearch, loading }) => {
   return (
     <div className="search-card">
       <div className="search-card-title">
-        <span>ðŸ—ºï¸</span> Where would you like to go?
+        <span>🗺️</span> Where would you like to go?
       </div>
       <form onSubmit={handleSubmit}>
+
         {/* Location row */}
         <div className="search-row">
-          <div className="search-field">
-            <label className="search-label" htmlFor="source">
-              <span>ðŸ“</span> From
-            </label>
-            <input
-              id="source"
-              type="text"
-              className="search-input"
-              placeholder="e.g. Mumbai, India"
-              value={source}
-              onChange={(e) => setSource(e.target.value)}
-              disabled={loading}
-              autoComplete="off"
-              maxLength={100}
-            />
-          </div>
+          <LocationInput
+            id="source"
+            label="From"
+            icon="📍"
+            placeholder="e.g. Mumbai, India"
+            value={source}
+            onChange={setSource}
+            disabled={loading}
+          />
 
           <button
             type="button"
@@ -130,32 +218,25 @@ const SearchForm = ({ onSearch, loading }) => {
             title="Swap source and destination"
             aria-label="Swap source and destination"
           >
-            â‡„
+            ⇄
           </button>
 
-          <div className="search-field">
-            <label className="search-label" htmlFor="destination">
-              <span>ðŸŽ¯</span> To
-            </label>
-            <input
-              id="destination"
-              type="text"
-              className="search-input"
-              placeholder="e.g. Goa, India"
-              value={destination}
-              onChange={(e) => setDestination(e.target.value)}
-              disabled={loading}
-              autoComplete="off"
-              maxLength={100}
-            />
-          </div>
+          <LocationInput
+            id="destination"
+            label="To"
+            icon="🎯"
+            placeholder="e.g. Goa, India"
+            value={destination}
+            onChange={setDestination}
+            disabled={loading}
+          />
         </div>
 
         {/* Date row */}
         <div className="date-row">
           <div className="search-field">
             <label className="search-label" htmlFor="startDate">
-              <span>ðŸ“…</span> Departure Date
+              <span>📅</span> Departure Date
             </label>
             <input
               id="startDate"
@@ -175,7 +256,7 @@ const SearchForm = ({ onSearch, loading }) => {
 
           <div className="search-field">
             <label className="search-label" htmlFor="endDate">
-              <span>ðŸ</span> Return Date
+              <span>🏁</span> Return Date
             </label>
             <input
               id="endDate"
@@ -192,19 +273,19 @@ const SearchForm = ({ onSearch, loading }) => {
         {/* Date summary */}
         {days > 0 && (
           <div className="date-summary">
-            <span>ðŸ—“ï¸</span>
-            <span>{fmt(startDate)} â†’ {fmt(endDate)}</span>
+            <span>🗓️</span>
+            <span>{fmt(startDate)} → {fmt(endDate)}</span>
             <span className="date-summary-pill">{days} day{days !== 1 ? 's' : ''} trip</span>
           </div>
         )}
 
         {/* Traveller type + number */}
         <div className="pref-row">
-          <ChipGroup label="ðŸ‘¤ Traveller Type" options={TRAVELLER_TYPES} value={travellerType} onChange={setTravellerType} disabled={loading} />
+          <ChipGroup label="👤 Traveller Type" options={TRAVELLER_TYPES} value={travellerType} onChange={setTravellerType} disabled={loading} />
           <div className="search-field traveller-count-field">
-            <div className="search-label" style={{ marginBottom: 8 }}>ðŸ§‘â€ðŸ¤â€ðŸ§‘ No. of Travellers</div>
+            <div className="search-label" style={{ marginBottom: 8 }}>🧑‍🤝‍🧑 No. of Travellers</div>
             <div className="traveller-count">
-              <button type="button" className="count-btn" onClick={() => setNumTravellers(n => Math.max(1, n - 1))} disabled={loading || numTravellers <= 1}>âˆ’</button>
+              <button type="button" className="count-btn" onClick={() => setNumTravellers(n => Math.max(1, n - 1))} disabled={loading || numTravellers <= 1}>−</button>
               <span className="count-num">{numTravellers}</span>
               <button type="button" className="count-btn" onClick={() => setNumTravellers(n => Math.min(20, n + 1))} disabled={loading || numTravellers >= 20}>+</button>
             </div>
@@ -212,24 +293,20 @@ const SearchForm = ({ onSearch, loading }) => {
         </div>
 
         {/* Budget level */}
-        <ChipGroup label="ðŸ’° Budget Level" options={BUDGET_LEVELS} value={budgetLevel} onChange={setBudgetLevel} disabled={loading} />
+        <ChipGroup label="💰 Budget Level" options={BUDGET_LEVELS} value={budgetLevel} onChange={setBudgetLevel} disabled={loading} />
 
         {/* Trip purpose */}
-        <ChipGroup label="ðŸŽ¯ Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose} onChange={setTripPurpose} disabled={loading} />
+        <ChipGroup label="🎯 Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose} onChange={setTripPurpose} disabled={loading} />
 
-        <button
-          type="submit"
-          className={`search-btn ${loading ? 'loading' : ''}`}
-          disabled={loading || !source.trim() || !destination.trim()}
-        >
+        {/* Submit */}
+        <button type="submit" className="search-btn" disabled={loading || !source.trim() || !destination.trim()}>
           {loading ? (
             <>
-              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>âŸ³</span>
-              Generating your travel planâ€¦
+              <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span> Planning...
             </>
           ) : (
             <>
-              <span>âœˆï¸</span> Plan My Trip
+              <span>✈️</span> Plan My Trip
             </>
           )}
         </button>
