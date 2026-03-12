@@ -57,7 +57,9 @@ const OverviewCard = ({ data }) => {
             {(() => {
               const v = data.visaInfo;
               const req = String(v.required || '').toLowerCase();
-              const badgeCls = req === 'false' || v.visaType?.toLowerCase().includes('free')
+              const notesLower = (v.notes || '').toLowerCase();
+              const notesIndicatesFree = notesLower.includes('do not require') || notesLower.includes('no visa required') || notesLower.includes('domestic travel') || notesLower.includes('not required');
+              const badgeCls = req === 'false' || notesIndicatesFree || v.visaType?.toLowerCase().includes('free') || v.visaType?.toLowerCase().includes('no visa')
                 ? 'visa-badge free'
                 : v.visaType?.toLowerCase().includes('arrival') || v.visaType?.toLowerCase().includes('e-visa')
                   ? 'visa-badge voa'

@@ -191,7 +191,7 @@ CRITICAL REQUIREMENTS:
 - Be specific — no generic placeholder text
 - Include exactly 3 hotels (one Budget, one Mid-Range, one Luxury) and 4-5 restaurants
 - Include 3-5 nearby destinations within day-trip distance from ${destination}
-- visaInfo must reflect REAL visa rules for travelers from ${source} country → ${destination} country
+- visaInfo must reflect REAL visa rules for travelers from ${source} → ${destination}. IMPORTANT: If ${source} and ${destination} are in the SAME country (e.g., both cities in India, or both in the USA), set required to "false", visaType to "No Visa Required", maxStay to "N/A", applyAt to "N/A", and notes to "No visa required — this is domestic travel within the same country."
 - keyLocations in each itinerary day must be real, geocodeable place names in ${destination}
 `.trim();
 };
