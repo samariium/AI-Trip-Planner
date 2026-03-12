@@ -197,19 +197,19 @@ CRITICAL REQUIREMENTS:
 };
 
 // ─── Groq (Free: 14,400 req/day, 30 req/min — primary provider) ──────────────
-const generateWithGroq = async (source, destination, startDate, endDate, days, prefs) => {
+const generateWithGroq = async (source, destination, startDate, endDate, days, prefs, model = 'llama-3.3-70b-versatile') => {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === 'your-groq-api-key-here') return null;
 
   const groq = new Groq({ apiKey });
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model,
     messages: [
       { role: 'system', content: 'You are an expert travel assistant. Return ONLY valid JSON — no markdown, no code blocks, no extra text.' },
       { role: 'user', content: buildPrompt(source, destination, startDate, endDate, days, prefs) }
     ],
     temperature: 0.7,
-    max_tokens: 4096,
+    max_tokens: 8192,
     response_format: { type: 'json_object' }
   });
   const content = response.choices[0]?.message?.content;
@@ -228,7 +228,7 @@ const generateWithGemini = async (source, destination, startDate, endDate, days,
     generationConfig: {
       responseMimeType: 'application/json',
       temperature: 0.7,
-      maxOutputTokens: 4096
+      maxOutputTokens: 8192
     }
   });
 
@@ -240,14 +240,21 @@ const generateWithGemini = async (source, destination, startDate, endDate, days,
 // ─── Main entry point ─────────────────────────────────────────────────────────
 const generateTravelPlan = async (source, destination, startDate, endDate, days = 3, prefs = {}) => {
 
-  // 1️⃣ Try Groq (free, fast, 14,400 req/day)
+  // 1️⃣ Try Groq primary model (llama-3.3-70b-versatile)
   if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-groq-api-key-here') {
     try {
-      console.log(`[AI] Using Groq for: ${source} → ${destination} (${days} days)`);
-      const plan = await generateWithGroq(source, destination, startDate, endDate, days, prefs);
+      console.log(`[AI] Using Groq (70b) for: ${source} → ${destination} (${days} days)`);
+      const plan = await generateWithGroq(source, destination, startDate, endDate, days, prefs, 'llama-3.3-70b-versatile');
       if (plan) return plan;
     } catch (err) {
-      console.warn(`[AI] Groq failed (${err.message}), trying Gemini...`);
+      console.warn(`[AI] Groq 70b failed (${err.message}), trying Groq 8b...`);
+      // 1b️⃣ Retry with smaller/faster model (lower rate limit impact)
+      try {
+        const plan = await generateWithGroq(source, destination, startDate, endDate, days, prefs, 'llama-3.1-8b-instant');
+        if (plan) return plan;
+      } catch (err2) {
+        console.warn(`[AI] Groq 8b also failed (${err2.message}), trying Gemini...`);
+      }
     }
   }
 
