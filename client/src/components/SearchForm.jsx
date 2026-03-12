@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
 const todayStr = () => new Date().toISOString().split('T')[0];
 
 const shiftDate = (dateStr, days) => {
@@ -86,16 +88,13 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
     if (q.length < 2) { setSuggestions([]); setOpen(false); return; }
     setLoading(true);
     try {
-      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&limit=6&accept-language=en`;
-      const res = await fetch(url);
+      const res = await fetch(`${API_BASE}/api/places/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
-      const items = data.map(r => ({
-        label: r.display_name,
-        short: [r.address?.city || r.address?.town || r.address?.village || r.address?.county, r.address?.country].filter(Boolean).join(', ') || r.display_name.split(',')[0],
-      }));
+      const items = Array.isArray(data) ? data : [];
       setSuggestions(items);
       if (items.length > 0) { updatePos(); setOpen(true); }
-    } catch {
+    } catch (err) {
+      console.warn('[Autocomplete]', err);
       setSuggestions([]);
     } finally {
       setLoading(false);

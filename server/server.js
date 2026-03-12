@@ -48,6 +48,7 @@ app.use(express.json({ limit: '10kb' }));
 // Routes
 app.use('/api/travel', require('./routes/travel'));
 app.use('/api/contacts', require('./routes/contacts'));
+app.use('/api/places', require('./routes/places'));
 
 // Health check
 app.get('/api/health', (req, res) => {
