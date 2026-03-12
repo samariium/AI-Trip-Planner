@@ -11,6 +11,7 @@ const CURRENCIES = [
   { code: 'CHF', label: 'Swiss Franc' },
   { code: 'CNY', label: 'Chinese Yuan' },
   { code: 'INR', label: 'Indian Rupee' },
+  { code: 'NPR', label: 'Nepali Rupee' },
   { code: 'AED', label: 'UAE Dirham' },
   { code: 'SGD', label: 'Singapore Dollar' },
   { code: 'THB', label: 'Thai Baht' },
@@ -35,6 +36,7 @@ const detectBaseCurrency = (currencyStr = '') => {
   if (m) return m[1];
   const lower = currencyStr.toLowerCase();
   if (lower.includes('rupee') || lower.includes('inr')) return 'INR';
+  if (lower.includes('nepali') || lower.includes('npr')) return 'NPR';
   if (lower.includes('dollar') && lower.includes('us')) return 'USD';
   if (lower.includes('euro')) return 'EUR';
   if (lower.includes('pound')) return 'GBP';
