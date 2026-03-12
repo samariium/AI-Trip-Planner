@@ -4,6 +4,9 @@ const travelPlanSchema = new mongoose.Schema(
   {
     source: { type: String, required: true, trim: true },
     destination: { type: String, required: true, trim: true },
+    days: { type: Number, default: 3 },
+    startDate: { type: String },
+    endDate: { type: String },
     overview: { type: String },
     aiNote: { type: String },
     travelOptions: [mongoose.Schema.Types.Mixed],
@@ -31,7 +34,7 @@ const travelPlanSchema = new mongoose.Schema(
 // TTL index — auto-delete cached plans after 24 hours
 travelPlanSchema.index({ createdAt: 1 }, { expireAfterSeconds: 86400 });
 
-// Compound index for fast lookups
-travelPlanSchema.index({ source: 1, destination: 1 });
+// Compound index for fast lookups (includes days for cache correctness)
+travelPlanSchema.index({ source: 1, destination: 1, days: 1 });
 
 module.exports = mongoose.model('TravelPlan', travelPlanSchema);

@@ -34,13 +34,13 @@ function App() {
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
-  const handlePlanTrip = async (source, destination) => {
+  const handlePlanTrip = async (source, destination, startDate, endDate, days) => {
     setLoading(true);
     setError(null);
     setTravelPlan(null);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/travel/plan`, { source, destination }, {
+      const response = await axios.post(`${API_BASE}/api/travel/plan`, { source, destination, startDate, endDate, days }, {
         timeout: 60000
       });
       setTravelPlan(response.data.data);

@@ -2,8 +2,25 @@ const Groq = require('groq-sdk');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // ─── Shared prompt builder ────────────────────────────────────────────────────
-const buildPrompt = (source, destination) => `
+const buildItineraryTemplate = (destination, days) => {
+  const arr = [];
+  for (let i = 1; i <= days; i++) {
+    let title;
+    if (i === 1) title = `Arrival & First Impressions of ${destination}`;
+    else if (i === days) title = `Final Day & Departure from ${destination}`;
+    else title = `Day ${i} — Exploring ${destination}`;
+    arr.push(`    {\n      "day": ${i},\n      "title": "${title}",\n      "morning": "Specific morning activities in ${destination} for day ${i} (8AM–12PM)",\n      "afternoon": "Specific afternoon activities in ${destination} for day ${i} (12PM–5PM)",\n      "evening": "Specific evening activities or dining in ${destination} for day ${i} (5PM–10PM)"\n    }`);
+  }
+  return arr.join(',\n');
+};
+
+const buildPrompt = (source, destination, startDate, endDate, days = 3) => {
+  const dateContext = startDate && endDate
+    ? `The trip runs from ${startDate} to ${endDate} (${days} day${days !== 1 ? 's' : ''}).`
+    : `The trip is ${days} day${days !== 1 ? 's' : ''} long.`;
+  return `
 You are an expert travel assistant. Generate a HIGHLY ACCURATE and SPECIFIC travel guide for a journey from "${source}" to "${destination}".
+${dateContext}
 
 Return ONLY a valid JSON object with EXACTLY this structure — no markdown, no code fences, no extra text:
 {
@@ -60,27 +77,7 @@ Return ONLY a valid JSON object with EXACTLY this structure — no markdown, no 
     "specific practical tip 6"
   ],
   "itinerary": [
-    {
-      "day": 1,
-      "title": "Arrival & First Impressions of ${destination}",
-      "morning": "Specific morning activities in ${destination} after arrival (8AM–12PM)",
-      "afternoon": "Specific afternoon plan visiting a key landmark in ${destination} (12PM–5PM)",
-      "evening": "Specific evening — local dinner spot or cultural experience in ${destination} (5PM–10PM)"
-    },
-    {
-      "day": 2,
-      "title": "Cultural Deep-Dive into ${destination}",
-      "morning": "Specific morning plan for day 2 — historical site or market in ${destination}",
-      "afternoon": "Specific afternoon plan for day 2 — museum, park or scenic spot",
-      "evening": "Specific evening for day 2 — bazaar/rooftop dining in ${destination}"
-    },
-    {
-      "day": 3,
-      "title": "Hidden Gems & Departure from ${destination}",
-      "morning": "Specific morning plan for day 3 — nature or offbeat attraction",
-      "afternoon": "Specific afternoon plan for day 3 — final sightseeing or shopping",
-      "evening": "Farewell evening — depart from ${destination} with tips on checkout"
-    }
+${buildItineraryTemplate(destination, days)}
   ],
   "budget": {
     "accommodation": {
@@ -111,11 +108,13 @@ CRITICAL REQUIREMENTS:
 - Itinerary activities must reference REAL landmarks from the attractions list
 - Budget figures must use the correct local currency for ${destination}
 - Include 3-4 travel options, exactly 6 attractions, exactly 6 foods, 5-6 contacts
+- Generate EXACTLY ${days} itinerary days matching the trip duration
 - Be specific — no generic placeholder text
 `.trim();
+};
 
 // ─── Groq (Free: 14,400 req/day, 30 req/min — primary provider) ──────────────
-const generateWithGroq = async (source, destination) => {
+const generateWithGroq = async (source, destination, startDate, endDate, days) => {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === 'your-groq-api-key-here') return null;
 
@@ -124,7 +123,7 @@ const generateWithGroq = async (source, destination) => {
     model: 'llama-3.3-70b-versatile',
     messages: [
       { role: 'system', content: 'You are an expert travel assistant. Return ONLY valid JSON — no markdown, no code blocks, no extra text.' },
-      { role: 'user', content: buildPrompt(source, destination) }
+      { role: 'user', content: buildPrompt(source, destination, startDate, endDate, days) }
     ],
     temperature: 0.7,
     max_tokens: 4096,
@@ -136,7 +135,7 @@ const generateWithGroq = async (source, destination) => {
 };
 
 // ─── Google Gemini (fallback) ─────────────────────────────────────────────────
-const generateWithGemini = async (source, destination) => {
+const generateWithGemini = async (source, destination, startDate, endDate, days) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
 
@@ -150,19 +149,19 @@ const generateWithGemini = async (source, destination) => {
     }
   });
 
-  const result = await model.generateContent(buildPrompt(source, destination));
+  const result = await model.generateContent(buildPrompt(source, destination, startDate, endDate, days));
   const text = result.response.text();
   return JSON.parse(text);
 };
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
-const generateTravelPlan = async (source, destination) => {
+const generateTravelPlan = async (source, destination, startDate, endDate, days = 3) => {
 
   // 1️⃣ Try Groq (free, fast, 14,400 req/day)
   if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-groq-api-key-here') {
     try {
-      console.log(`[AI] Using Groq for: ${source} → ${destination}`);
-      const plan = await generateWithGroq(source, destination);
+      console.log(`[AI] Using Groq for: ${source} → ${destination} (${days} days)`);
+      const plan = await generateWithGroq(source, destination, startDate, endDate, days);
       if (plan) return plan;
     } catch (err) {
       console.warn(`[AI] Groq failed (${err.message}), trying Gemini...`);
@@ -172,8 +171,8 @@ const generateTravelPlan = async (source, destination) => {
   // 2️⃣ Try Google Gemini
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key-here') {
     try {
-      console.log(`[AI] Using Gemini for: ${source} → ${destination}`);
-      const plan = await generateWithGemini(source, destination);
+      console.log(`[AI] Using Gemini for: ${source} → ${destination} (${days} days)`);
+      const plan = await generateWithGemini(source, destination, startDate, endDate, days);
       if (plan) return plan;
     } catch (err) {
       console.warn(`[AI] Gemini failed (${err.message}), using template fallback...`);

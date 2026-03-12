@@ -5,7 +5,7 @@ const TravelPlan = require('../models/TravelPlan');
 
 const planTrip = async (req, res) => {
   try {
-    const { source, destination } = req.body;
+    const { source, destination, startDate, endDate, days: rawDays } = req.body;
 
     // Input validation
     if (!source || !destination) {
@@ -14,19 +14,23 @@ const planTrip = async (req, res) => {
 
     const src = String(source).trim().slice(0, 100);
     const dst = String(destination).trim().slice(0, 100);
+    const days = Math.min(Math.max(parseInt(rawDays) || 3, 1), 14); // clamp 1–14 days
+    const sDate = startDate ? String(startDate).slice(0, 10) : null;
+    const eDate = endDate ? String(endDate).slice(0, 10) : null;
 
     if (src.length < 2 || dst.length < 2) {
       return res.status(400).json({ error: 'Please enter valid location names.' });
     }
 
-    // Check MongoDB cache first
+    // Check MongoDB cache (skip cache if days differ)
     const cached = await TravelPlan.findOne({
       source: { $regex: new RegExp(`^${escapeRegex(src)}$`, 'i') },
-      destination: { $regex: new RegExp(`^${escapeRegex(dst)}$`, 'i') }
+      destination: { $regex: new RegExp(`^${escapeRegex(dst)}$`, 'i') },
+      days: days
     });
 
     if (cached) {
-      console.log(`Cache hit: ${src} → ${dst}`);
+      console.log(`Cache hit: ${src} → ${dst} (${days} days)`);
       return res.json({ success: true, data: cached, fromCache: true });
     }
 
@@ -34,12 +38,15 @@ const planTrip = async (req, res) => {
     const [sourceCoords, destCoords, aiPlan] = await Promise.all([
       geocodeLocation(src),
       geocodeLocation(dst),
-      generateTravelPlan(src, dst)
+      generateTravelPlan(src, dst, sDate, eDate, days)
     ]);
 
     const travelData = {
       source: src,
       destination: dst,
+      days,
+      startDate: sDate,
+      endDate: eDate,
       ...aiPlan,
       sourceCoords: sourceCoords || { lat: 0, lng: 0 },
       destCoords: destCoords || { lat: 0, lng: 0 }
