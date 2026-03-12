@@ -14,13 +14,16 @@ const buildItineraryTemplate = (destination, days) => {
   return arr.join(',\n');
 };
 
-const buildPrompt = (source, destination, startDate, endDate, days = 3) => {
+const buildPrompt = (source, destination, startDate, endDate, days = 3, prefs = {}) => {
+  const { travellerType = 'solo', budgetLevel = 'midrange', tripPurpose = 'cultural', numTravellers = 1 } = prefs;
   const dateContext = startDate && endDate
     ? `The trip runs from ${startDate} to ${endDate} (${days} day${days !== 1 ? 's' : ''}).`
     : `The trip is ${days} day${days !== 1 ? 's' : ''} long.`;
+  const prefContext = `Traveller profile: ${numTravellers} ${travellerType} traveller${numTravellers > 1 ? 's' : ''}, ${budgetLevel} budget, trip purpose: ${tripPurpose}.`;
   return `
 You are an expert travel assistant. Generate a HIGHLY ACCURATE and SPECIFIC travel guide for a journey from "${source}" to "${destination}".
 ${dateContext}
+${prefContext}
 
 Return ONLY a valid JSON object with EXACTLY this structure — no markdown, no code fences, no extra text:
 {
@@ -97,7 +100,33 @@ ${buildItineraryTemplate(destination, days)}
       "midRange": "total all-inclusive daily cost for mid-range traveller",
       "luxury": "total all-inclusive daily cost for luxury traveller"
     }
-  }
+  },
+  "packingChecklist": [
+    {
+      "category": "Documents",
+      "items": ["item1", "item2"]
+    },
+    {
+      "category": "Clothing",
+      "items": ["item1", "item2"]
+    },
+    {
+      "category": "Toiletries",
+      "items": ["item1", "item2"]
+    },
+    {
+      "category": "Electronics",
+      "items": ["item1", "item2"]
+    },
+    {
+      "category": "Health & Safety",
+      "items": ["item1", "item2"]
+    },
+    {
+      "category": "${tripPurpose.charAt(0).toUpperCase() + tripPurpose.slice(1)} Essentials",
+      "items": ["item1", "item2"]
+    }
+  ]
 }
 
 CRITICAL REQUIREMENTS:
@@ -109,12 +138,14 @@ CRITICAL REQUIREMENTS:
 - Budget figures must use the correct local currency for ${destination}
 - Include 3-4 travel options, exactly 6 attractions, exactly 6 foods, 5-6 contacts
 - Generate EXACTLY ${days} itinerary days matching the trip duration
+- Tailor ALL recommendations (budget, activities, food, tips) to the traveller profile: ${travellerType}, ${budgetLevel} budget, ${tripPurpose} trip
+- PackingChecklist must be specific to ${destination}'s climate, the trip purpose (${tripPurpose}), and duration (${days} days)
 - Be specific — no generic placeholder text
 `.trim();
 };
 
 // ─── Groq (Free: 14,400 req/day, 30 req/min — primary provider) ──────────────
-const generateWithGroq = async (source, destination, startDate, endDate, days) => {
+const generateWithGroq = async (source, destination, startDate, endDate, days, prefs) => {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey || apiKey === 'your-groq-api-key-here') return null;
 
@@ -123,7 +154,7 @@ const generateWithGroq = async (source, destination, startDate, endDate, days) =
     model: 'llama-3.3-70b-versatile',
     messages: [
       { role: 'system', content: 'You are an expert travel assistant. Return ONLY valid JSON — no markdown, no code blocks, no extra text.' },
-      { role: 'user', content: buildPrompt(source, destination, startDate, endDate, days) }
+      { role: 'user', content: buildPrompt(source, destination, startDate, endDate, days, prefs) }
     ],
     temperature: 0.7,
     max_tokens: 4096,
@@ -135,7 +166,7 @@ const generateWithGroq = async (source, destination, startDate, endDate, days) =
 };
 
 // ─── Google Gemini (fallback) ─────────────────────────────────────────────────
-const generateWithGemini = async (source, destination, startDate, endDate, days) => {
+const generateWithGemini = async (source, destination, startDate, endDate, days, prefs) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === 'your-gemini-api-key-here') return null;
 
@@ -149,19 +180,19 @@ const generateWithGemini = async (source, destination, startDate, endDate, days)
     }
   });
 
-  const result = await model.generateContent(buildPrompt(source, destination, startDate, endDate, days));
+  const result = await model.generateContent(buildPrompt(source, destination, startDate, endDate, days, prefs));
   const text = result.response.text();
   return JSON.parse(text);
 };
 
 // ─── Main entry point ─────────────────────────────────────────────────────────
-const generateTravelPlan = async (source, destination, startDate, endDate, days = 3) => {
+const generateTravelPlan = async (source, destination, startDate, endDate, days = 3, prefs = {}) => {
 
   // 1️⃣ Try Groq (free, fast, 14,400 req/day)
   if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your-groq-api-key-here') {
     try {
       console.log(`[AI] Using Groq for: ${source} → ${destination} (${days} days)`);
-      const plan = await generateWithGroq(source, destination, startDate, endDate, days);
+      const plan = await generateWithGroq(source, destination, startDate, endDate, days, prefs);
       if (plan) return plan;
     } catch (err) {
       console.warn(`[AI] Groq failed (${err.message}), trying Gemini...`);
@@ -172,7 +203,7 @@ const generateTravelPlan = async (source, destination, startDate, endDate, days 
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== 'your-gemini-api-key-here') {
     try {
       console.log(`[AI] Using Gemini for: ${source} → ${destination} (${days} days)`);
-      const plan = await generateWithGemini(source, destination, startDate, endDate, days);
+      const plan = await generateWithGemini(source, destination, startDate, endDate, days, prefs);
       if (plan) return plan;
     } catch (err) {
       console.warn(`[AI] Gemini failed (${err.message}), using template fallback...`);

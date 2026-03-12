@@ -1,4 +1,5 @@
 import OverviewCard from './OverviewCard';
+import PackingChecklist from './PackingChecklist';
 import TravelOptions from './TravelOptions';
 import MapView from './MapView';
 import Attractions from './Attractions';
@@ -30,7 +31,7 @@ const TravelPlan = ({ data }) => {
           <section>
             <h2 className="section-title">
               <span className="section-icon">📅</span>
-              3-Day Itinerary
+              {data.days ? `${data.days}-Day` : 'Your'} Itinerary
             </h2>
             <ItineraryCard itinerary={data.itinerary} />
           </section>
@@ -102,6 +103,13 @@ const TravelPlan = ({ data }) => {
               Local Assistance
             </h2>
             <LocalContacts contacts={data.localContacts} />
+          </section>
+        )}
+
+        {/* Packing Checklist */}
+        {data.packingChecklist?.length > 0 && (
+          <section>
+            <PackingChecklist checklist={data.packingChecklist} />
           </section>
         )}
 

@@ -5,7 +5,7 @@ const TravelPlan = require('../models/TravelPlan');
 
 const planTrip = async (req, res) => {
   try {
-    const { source, destination, startDate, endDate, days: rawDays } = req.body;
+    const { source, destination, startDate, endDate, days: rawDays, travellerType, budgetLevel, tripPurpose, numTravellers: rawNum } = req.body;
 
     // Input validation
     if (!source || !destination) {
@@ -14,31 +14,40 @@ const planTrip = async (req, res) => {
 
     const src = String(source).trim().slice(0, 100);
     const dst = String(destination).trim().slice(0, 100);
-    const days = Math.min(Math.max(parseInt(rawDays) || 3, 1), 14); // clamp 1–14 days
+    const days = Math.min(Math.max(parseInt(rawDays) || 3, 1), 14);
     const sDate = startDate ? String(startDate).slice(0, 10) : null;
     const eDate = endDate ? String(endDate).slice(0, 10) : null;
+    const travType = ['solo','couple','family','backpacker','business'].includes(travellerType) ? travellerType : 'solo';
+    const budgetLvl = ['budget','midrange','luxury'].includes(budgetLevel) ? budgetLevel : 'midrange';
+    const purpose = ['adventure','relaxation','cultural','pilgrimage','honeymoon'].includes(tripPurpose) ? tripPurpose : 'cultural';
+    const numTravellers = Math.min(Math.max(parseInt(rawNum) || 1, 1), 20);
 
     if (src.length < 2 || dst.length < 2) {
       return res.status(400).json({ error: 'Please enter valid location names.' });
     }
 
-    // Check MongoDB cache (skip cache if days differ)
+    // Cache keyed by route + days + preferences
     const cached = await TravelPlan.findOne({
       source: { $regex: new RegExp(`^${escapeRegex(src)}$`, 'i') },
       destination: { $regex: new RegExp(`^${escapeRegex(dst)}$`, 'i') },
-      days: days
+      days,
+      travellerType: travType,
+      budgetLevel: budgetLvl,
+      tripPurpose: purpose
     });
 
     if (cached) {
-      console.log(`Cache hit: ${src} → ${dst} (${days} days)`);
+      console.log(`Cache hit: ${src} → ${dst} (${days}d, ${travType}, ${budgetLvl}, ${purpose})`);
       return res.json({ success: true, data: cached, fromCache: true });
     }
+
+    const preferences = { travellerType: travType, budgetLevel: budgetLvl, tripPurpose: purpose, numTravellers };
 
     // Fetch geocoding and AI plan concurrently
     const [sourceCoords, destCoords, aiPlan] = await Promise.all([
       geocodeLocation(src),
       geocodeLocation(dst),
-      generateTravelPlan(src, dst, sDate, eDate, days)
+      generateTravelPlan(src, dst, sDate, eDate, days, preferences)
     ]);
 
     const travelData = {
@@ -47,6 +56,10 @@ const planTrip = async (req, res) => {
       days,
       startDate: sDate,
       endDate: eDate,
+      travellerType: travType,
+      budgetLevel: budgetLvl,
+      tripPurpose: purpose,
+      numTravellers,
       ...aiPlan,
       sourceCoords: sourceCoords || { lat: 0, lng: 0 },
       destCoords: destCoords || { lat: 0, lng: 0 }
