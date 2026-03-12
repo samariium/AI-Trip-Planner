@@ -37,7 +37,7 @@
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   --font: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-display: 'Playfair Display', Georgia, serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
 
   --grad-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
   --grad-hero: linear-gradient(135deg, #0f0c29 0%, #1a1060 40%, #0d1b4e 70%, #0c2a4a 100%);
@@ -1938,7 +1938,7 @@ main { flex: 1; }
 [data-theme="light"] .leaflet-popup-tip { background: #fff !important; }
 
 /* ============================================================
-   SEARCH FORM — CHIP SELECTORS & TRAVELLER COUNT
+   SEARCH FORM ï¿½ CHIP SELECTORS & TRAVELLER COUNT
    ============================================================ */
 .chip-group { margin-bottom: 18px; }
 .chip-group label { display: block; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted, #94a3b8); margin-bottom: 8px; }
@@ -2084,3 +2084,175 @@ main { flex: 1; }
 [data-theme="dark"] .loc-option:hover { background: rgba(99,102,241,0.15); }
 [data-theme="dark"] .loc-short { color: #e2e8f0; }
 [data-theme="dark"] .loc-full { color: #94a3b8; }
+/* ============================================================
+   SKELETON LOADING
+   ============================================================ */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgba(99,102,241,0.08) 25%, rgba(99,102,241,0.16) 50%, rgba(99,102,241,0.08) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+.skeleton-line   { height: 14px; margin-bottom: 10px; border-radius: 6px; }
+.skeleton-line.w-80  { width: 80%; }
+.skeleton-line.w-60  { width: 60%; }
+.skeleton-line.w-40  { width: 40%; }
+.skeleton-line.w-100 { width: 100%; }
+.skeleton-block  { border-radius: 12px; }
+
+.skeleton-loader { padding: 0 1.5rem; max-width: 1100px; margin: 40px auto; }
+
+/* Overview skeleton */
+.sk-overview {
+  border-radius: 20px; padding: 28px 32px; margin-bottom: 24px;
+  background: var(--card); border: 1px solid var(--border);
+}
+.sk-overview-route { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; }
+.sk-overview-route .skeleton { height: 28px; border-radius: 8px; }
+
+/* Section skeleton */
+.sk-section { background: var(--card); border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid var(--border); }
+.sk-section-title { height: 22px; width: 220px; margin-bottom: 20px; }
+.sk-cards-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.sk-card { border-radius: 12px; padding: 18px; background: rgba(99,102,241,0.04); border: 1px solid rgba(99,102,241,0.1); }
+
+/* Progress steps */
+.progress-steps-wrap {
+  max-width: 420px; margin: 32px auto; padding: 28px 32px;
+  background: var(--card); border-radius: 20px;
+  border: 1px solid rgba(99,102,241,0.18);
+  box-shadow: 0 8px 40px rgba(99,102,241,0.14);
+}
+.progress-plane { font-size: 2.4rem; text-align: center; margin-bottom: 12px; animation: plane-float 2s ease-in-out infinite; }
+@keyframes plane-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.progress-title { text-align: center; font-size: 1.1rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.progress-subtitle { text-align: center; font-size: 0.82rem; color: var(--text-muted); margin-bottom: 24px; }
+.progress-bar-outer { height: 6px; background: rgba(99,102,241,0.12); border-radius: 999px; margin-bottom: 24px; overflow: hidden; }
+.progress-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #6366f1, #a78bfa); transition: width 0.6s ease; }
+.progress-step-list { display: flex; flex-direction: column; gap: 10px; }
+.progress-step { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: var(--text-muted); transition: color 0.3s; }
+.progress-step.done { color: #10b981; }
+.progress-step.active { color: #6366f1; font-weight: 600; }
+.ps-dot {
+  width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--border); background: transparent;
+  display: flex; align-items: center; justify-content: center; font-size: 0.7rem; transition: all 0.3s;
+}
+.progress-step.done  .ps-dot { background: #10b981; border-color: #10b981; color: #fff; }
+.progress-step.active .ps-dot { border-color: #6366f1; animation: ps-pulse 1s ease-in-out infinite; }
+@keyframes ps-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); } 50% { box-shadow: 0 0 0 6px rgba(99,102,241,0); } }
+
+/* ============================================================
+   CONFETTI CANVAS
+   ============================================================ */
+#confetti-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999; }
+
+/* ============================================================
+   TRIP COMPARISON
+   ============================================================ */
+.compare-toggle-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 20px; border-radius: 999px; border: 1.5px solid rgba(99,102,241,0.4);
+  background: transparent; color: #6366f1; font-size: 0.85rem; font-weight: 600;
+  cursor: pointer; transition: all 0.18s; margin: 16px auto; display: block;
+}
+.compare-toggle-btn:hover { background: rgba(99,102,241,0.1); }
+.compare-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 24px; background: var(--card); border-bottom: 1px solid var(--border);
+}
+.compare-header h3 { font-size: 1rem; font-weight: 700; }
+.compare-close { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: var(--text-muted); }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.compare-col { border-right: 1px solid var(--border); }
+.compare-col:last-child { border-right: none; }
+.compare-col-label {
+  text-align: center; font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; padding: 10px; color: #6366f1;
+  background: rgba(99,102,241,0.06); border-bottom: 1px solid rgba(99,102,241,0.12);
+}
+.compare-panel { background: var(--card); border: 1.5px solid rgba(99,102,241,0.2); border-radius: 20px; margin-bottom: 24px; overflow: hidden; }
+.compare-search-wrap { padding: 20px 24px; border-bottom: 1px solid var(--border); }
+
+@media (max-width: 900px) {
+  .compare-grid { grid-template-columns: 1fr; }
+  .compare-col { border-right: none; border-bottom: 1px solid var(--border); }
+}
+
+/* ============================================================
+   CURRENCY CONVERTER
+   ============================================================ */
+.currency-card {
+  background: var(--card); border-radius: 16px; padding: 22px 24px;
+  border: 1.5px solid rgba(6,182,212,0.25);
+}
+.currency-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.currency-icon { font-size: 1.4rem; }
+.currency-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+.currency-note { font-size: 0.75rem; color: var(--text-muted); margin-left: auto; }
+.currency-selector { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.currency-selector label { font-size: 0.82rem; color: var(--text-muted); font-weight: 500; }
+.currency-select {
+  padding: 7px 12px; border-radius: 8px; border: 1.5px solid var(--border);
+  background: var(--card); color: var(--text); font-size: 0.85rem;
+  cursor: pointer; outline: none;
+}
+.currency-select:focus { border-color: #06b6d4; }
+.currency-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
+.currency-item {
+  background: rgba(6,182,212,0.04); border: 1px solid rgba(6,182,212,0.15);
+  border-radius: 10px; padding: 12px 14px;
+}
+.currency-item-label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.currency-item-value { font-size: 1.05rem; font-weight: 700; color: var(--text); }
+.currency-item-orig { font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; }
+.currency-loading { text-align: center; color: var(--text-muted); padding: 16px; font-size: 0.85rem; }
+.currency-rate-note { font-size: 0.72rem; color: var(--text-muted); margin-top: 12px; text-align: center; }
+
+[data-theme="dark"] .currency-card { background: rgba(6,182,212,0.04); border-color: rgba(6,182,212,0.2); }
+[data-theme="dark"] .currency-item { background: rgba(6,182,212,0.06); border-color: rgba(6,182,212,0.18); }
+[data-theme="dark"] .currency-select { background: #1e1b4b; border-color: rgba(99,102,241,0.3); }
+
+/* ============================================================
+   NEARBY DESTINATIONS
+   ============================================================ */
+.nearby-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.nearby-card {
+  background: var(--card); border-radius: 14px; padding: 18px 20px;
+  border: 1.5px solid var(--border); transition: all 0.2s; cursor: default;
+}
+.nearby-card:hover { border-color: #6366f1; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.nearby-name { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.nearby-dist { font-size: 0.78rem; color: #6366f1; font-weight: 600; background: rgba(99,102,241,0.1); padding: 2px 8px; border-radius: 999px; display: inline-block; margin-bottom: 8px; }
+.nearby-why { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+.nearby-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.nearby-tag { font-size: 0.72rem; padding: 2px 8px; border-radius: 999px; background: rgba(99,102,241,0.08); color: #6366f1; border: 1px solid rgba(99,102,241,0.15); }
+
+[data-theme="dark"] .nearby-card { background: rgba(255,255,255,0.04); border-color: rgba(99,102,241,0.15); }
+[data-theme="dark"] .nearby-card:hover { border-color: #818cf8; }
+
+/* ============================================================
+   VISA INFO
+   ============================================================ */
+.visa-badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border-radius: 999px; font-size: 0.82rem; font-weight: 700; margin-bottom: 8px;
+}
+.visa-badge.required { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.25); }
+.visa-badge.free      { background: rgba(16,185,129,0.12); color: #10b981; border: 1px solid rgba(16,185,129,0.25); }
+.visa-badge.voa       { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); }
+.visa-info-wrap { background: var(--card); border-radius: 14px; padding: 18px 20px; border: 1.5px solid var(--border); margin-top: 16px; }
+.visa-info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 12px; }
+.visa-info-item label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 3px; }
+.visa-info-item span { font-size: 0.88rem; font-weight: 600; color: var(--text); }
+.visa-info-notes { font-size: 0.82rem; color: var(--text-muted); margin-top: 10px; line-height: 1.5; border-top: 1px solid var(--border); padding-top: 10px; }
+[data-theme="dark"] .visa-info-wrap { background: rgba(255,255,255,0.04); border-color: rgba(99,102,241,0.15); }
+
+/* ============================================================
+   MAP LEGEND UPDATES (hotel/restaurant/day-route colors)
+   ============================================================ */
+.legend-day-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }

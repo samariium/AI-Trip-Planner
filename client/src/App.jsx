@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+﻿import { useState, useRef, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import confetti from 'canvas-confetti';
 import Header from './components/Header';
 import SearchForm from './components/SearchForm';
 import TravelPlan from './components/TravelPlan';
@@ -7,50 +8,68 @@ import LoadingSpinner from './components/LoadingSpinner';
 
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
-// ─── Recent Searches helpers ───────────────────────────────────────
 const RECENTS_KEY = 'aitrip_recents';
 const getRecents = () => { try { return JSON.parse(localStorage.getItem(RECENTS_KEY)) || []; } catch { return []; } };
 const saveRecent = (src, dst) => {
   const prev = getRecents().filter(r => !(r.source === src && r.destination === dst));
-  const next = [{ source: src, destination: dst }, ...prev].slice(0, 5);
-  localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+  localStorage.setItem(RECENTS_KEY, JSON.stringify([{ source: src, destination: dst }, ...prev].slice(0, 5)));
 };
 
-// ─── Dark mode helpers ─────────────────────────────────────────────
 const THEME_KEY = 'aitrip_theme';
 const getInitialTheme = () => localStorage.getItem(THEME_KEY) || 'dark';
 
-function App() {
-  const [travelPlan, setTravelPlan] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [recents, setRecents] = useState(getRecents);
-  const [theme, setTheme] = useState(getInitialTheme);
-  const resultsRef = useRef(null);
+const launchConfetti = () => {
+  const fire = (opts) => confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 }, ...opts });
+  fire({ angle: 60, origin: { x: 0, y: 0.6 } });
+  fire({ angle: 120, origin: { x: 1, y: 0.6 } });
+  setTimeout(() => fire({ angle: 90, origin: { x: 0.5, y: 0.4 }, particleCount: 80 }), 250);
+};
 
-  // Apply theme class to <html>
+const FEATURES = [
+  { icon: '✈️', title: 'Smart Travel Options', desc: 'AI-curated flights, trains, buses, and road routes with cost estimates and booking tips.' },
+  { icon: '🗺️', title: 'Interactive Route Maps', desc: 'Visualize your journey with real map integration and day-wise colour-coded paths.' },
+  { icon: '🏛️', title: 'Top Attractions', desc: 'Discover must-visit landmarks, historical sites, nature spots, and hidden gems at your destination.' },
+  { icon: '🍜', title: 'Local Cuisine Guide', desc: 'Explore authentic local dishes, street foods, and the best places to taste regional specialties.' },
+  { icon: '💱', title: 'Currency Converter', desc: 'Live exchange rates to convert trip costs instantly into your preferred currency.' },
+  { icon: '🪪', title: 'Visa Requirements', desc: 'Get a quick overview of visa rules, types, and application resources for your route.' },
+];
+
+function App() {
+  const [travelPlan, setTravelPlan]       = useState(null);
+  const [loading, setLoading]             = useState(false);
+  const [error, setError]                 = useState(null);
+  const [recents, setRecents]             = useState(getRecents);
+  const [theme, setTheme]                 = useState(getInitialTheme);
+
+  // Trip comparison state
+  const [compareMode, setCompareMode]     = useState(false);
+  const [comparePlan, setComparePlan]     = useState(null);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareError, setCompareError]   = useState(null);
+
+  const resultsRef  = useRef(null);
+  const compareRef  = useRef(null);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_KEY, theme);
   }, [theme]);
 
-  const handlePlanTrip = async (source, destination, startDate, endDate, days, preferences = {}) => {
+  const handlePlanTrip = useCallback(async (source, destination, startDate, endDate, days, preferences = {}) => {
     setLoading(true);
     setError(null);
     setTravelPlan(null);
-
+    setComparePlan(null);
+    setCompareMode(false);
     try {
-      const response = await axios.post(`${API_BASE}/api/travel/plan`, {
+      const res = await axios.post(`${API_BASE}/api/travel/plan`, {
         source, destination, startDate, endDate, days, ...preferences
-      }, {
-        timeout: 60000
-      });
-      setTravelPlan(response.data.data);
+      }, { timeout: 70000 });
+      setTravelPlan(res.data.data);
       saveRecent(source, destination);
       setRecents(getRecents());
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 150);
+      launchConfetti();
+      setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
     } catch (err) {
       const msg = err.response?.data?.error
         || (err.code === 'ECONNABORTED' ? 'Request timed out. The AI is taking too long. Please retry.' : null)
@@ -59,16 +78,24 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const FEATURES = [
-    { icon: '✈️', title: 'Smart Travel Options', desc: 'AI-curated flights, trains, buses, and road routes with cost estimates and booking tips.' },
-    { icon: '🗺️', title: 'Interactive Route Maps', desc: 'Visualize your journey with real map integration and actual road routing via OpenStreetMap.' },
-    { icon: '🏛️', title: 'Top Attractions', desc: 'Discover must-visit landmarks, historical sites, nature spots, and hidden gems at your destination.' },
-    { icon: '🍜', title: 'Local Cuisine Guide', desc: 'Explore authentic local dishes, street foods, and the best places to taste regional specialties.' },
-    { icon: '📞', title: 'Local Assistance', desc: 'Access guides, taxi contacts, emergency numbers, hospitals, and tourism offices at your destination.' },
-    { icon: '🤖', title: 'AI-Powered Planning', desc: 'GPT-4o-mini powered recommendations tailored to your specific source and destination combination.' }
-  ];
+  const handleComparePlan = useCallback(async (source, destination, startDate, endDate, days, preferences = {}) => {
+    setCompareLoading(true);
+    setCompareError(null);
+    try {
+      const res = await axios.post(`${API_BASE}/api/travel/plan`, {
+        source, destination, startDate, endDate, days, ...preferences
+      }, { timeout: 70000 });
+      setComparePlan(res.data.data);
+      setTimeout(() => compareRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    } catch (err) {
+      const msg = err.response?.data?.error || 'Failed to generate comparison plan.';
+      setCompareError(msg);
+    } finally {
+      setCompareLoading(false);
+    }
+  }, []);
 
   return (
     <div className="app">
@@ -96,16 +123,12 @@ function App() {
             </p>
             <SearchForm onSearch={handlePlanTrip} loading={loading} />
 
-            {/* Recently Searched */}
             {recents.length > 0 && !travelPlan && !loading && (
               <div className="recents">
                 <span className="recents-label">🕐 Recent:</span>
                 {recents.map((r, i) => (
-                  <button
-                    key={i}
-                    className="recent-chip"
-                    onClick={() => handlePlanTrip(r.source, r.destination)}
-                  >
+                  <button key={i} className="recent-chip"
+                    onClick={() => handlePlanTrip(r.source, r.destination)}>
                     {r.source} → {r.destination}
                   </button>
                 ))}
@@ -127,10 +150,55 @@ function App() {
         {/* Loading */}
         {loading && <LoadingSpinner />}
 
-        {/* Results */}
+        {/* Primary Results */}
         {travelPlan && !loading && (
           <div ref={resultsRef}>
-            <TravelPlan data={travelPlan} />
+            {/* Compare toggle */}
+            {!compareMode && (
+              <div style={{ textAlign: 'center', padding: '16px 0 0' }}>
+                <button className="compare-toggle-btn" onClick={() => setCompareMode(true)}>
+                  ⚖️ Compare Another Route
+                </button>
+              </div>
+            )}
+
+            {/* Comparison layout */}
+            {compareMode ? (
+              <div className="compare-panel" ref={compareRef}>
+                <div className="compare-header">
+                  <h3>⚖️ Side-by-Side Comparison</h3>
+                  <button className="compare-close" onClick={() => { setCompareMode(false); setComparePlan(null); }}>✕</button>
+                </div>
+                <div className="compare-grid">
+                  {/* Plan A */}
+                  <div className="compare-col">
+                    <div className="compare-col-label">Plan A — {travelPlan.source} → {travelPlan.destination}</div>
+                    <TravelPlan data={travelPlan} compact />
+                  </div>
+                  {/* Plan B */}
+                  <div className="compare-col">
+                    <div className="compare-col-label">Plan B — Compare Route</div>
+                    {!comparePlan && !compareLoading && (
+                      <div className="compare-search-wrap">
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 12 }}>
+                          Search a second route to compare side by side.
+                        </p>
+                        <SearchForm onSearch={handleComparePlan} loading={compareLoading} compact />
+                      </div>
+                    )}
+                    {compareLoading && <LoadingSpinner />}
+                    {compareError && (
+                      <div style={{ padding: '16px' }}>
+                        <div className="error-banner"><span className="error-icon">⚠️</span>{compareError}</div>
+                      </div>
+                    )}
+                    {comparePlan && !compareLoading && <TravelPlan data={comparePlan} compact />}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <TravelPlan data={travelPlan} />
+            )}
           </div>
         )}
 
@@ -143,9 +211,7 @@ function App() {
             <div className="features-grid">
               {FEATURES.map((f, i) => (
                 <div key={i} className="feature-card">
-                  <div className="feature-icon-wrap">
-                    <span className="feature-icon">{f.icon}</span>
-                  </div>
+                  <div className="feature-icon-wrap"><span className="feature-icon">{f.icon}</span></div>
                   <h3>{f.title}</h3>
                   <p>{f.desc}</p>
                 </div>

@@ -49,6 +49,32 @@ const OverviewCard = ({ data }) => {
             </div>
           ))}
         </div>
+
+        {/* Visa Info */}
+        {data.visaInfo && (
+          <div className="visa-info-wrap">
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 8 }}>🪪 Visa Requirements</div>
+            {(() => {
+              const v = data.visaInfo;
+              const req = String(v.required || '').toLowerCase();
+              const badgeCls = req === 'false' || v.visaType?.toLowerCase().includes('free')
+                ? 'visa-badge free'
+                : v.visaType?.toLowerCase().includes('arrival') || v.visaType?.toLowerCase().includes('e-visa')
+                  ? 'visa-badge voa'
+                  : 'visa-badge required';
+              return (
+                <>
+                  <span className={badgeCls}>{v.visaType || 'Check requirements'}</span>
+                  <div className="visa-info-grid">
+                    {v.maxStay && <div className="visa-info-item"><label>Max Stay</label><span>{v.maxStay}</span></div>}
+                    {v.applyAt && <div className="visa-info-item"><label>Apply At</label><span style={{ fontSize: '0.78rem' }}>{v.applyAt}</span></div>}
+                  </div>
+                  {v.notes && <div className="visa-info-notes">ℹ️ {v.notes}</div>}
+                </>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );

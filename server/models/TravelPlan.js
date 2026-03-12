@@ -24,6 +24,10 @@ const travelPlanSchema = new mongoose.Schema(
     currency: { type: String },
     itinerary: [mongoose.Schema.Types.Mixed],
     budget: { type: mongoose.Schema.Types.Mixed },
+    hotels: [mongoose.Schema.Types.Mixed],
+    restaurants: [mongoose.Schema.Types.Mixed],
+    nearbyDestinations: [mongoose.Schema.Types.Mixed],
+    visaInfo: { type: mongoose.Schema.Types.Mixed },
     sourceCoords: {
       lat: { type: Number },
       lng: { type: Number }

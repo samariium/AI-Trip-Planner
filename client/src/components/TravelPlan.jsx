@@ -9,6 +9,8 @@ import TravelTips from './TravelTips';
 import ItineraryCard from './ItineraryCard';
 import BudgetCard from './BudgetCard';
 import WeatherCard from './WeatherCard';
+import CurrencyConverter from './CurrencyConverter';
+import NearbyDestinations from './NearbyDestinations';
 
 const TravelPlan = ({ data }) => {
   return (
@@ -47,6 +49,17 @@ const TravelPlan = ({ data }) => {
             <BudgetCard budget={data.budget} />
           </section>
         )}
+
+        {/* Currency Converter */}
+        {data.budget && (
+          <section>
+            <h2 className="section-title">
+              <span className="section-icon">💱</span>
+              Currency Converter
+            </h2>
+            <CurrencyConverter budget={data.budget} currency={data.currency} />
+          </section>
+        )}
         {/* Travel Options */}
         {data.travelOptions?.length > 0 && (
           <section>
@@ -70,6 +83,9 @@ const TravelPlan = ({ data }) => {
             source={data.source}
             destination={data.destination}
             attractions={data.attractions}
+            hotels={data.hotels}
+            restaurants={data.restaurants}
+            itinerary={data.itinerary}
           />
         </section>
 
@@ -110,6 +126,17 @@ const TravelPlan = ({ data }) => {
         {data.packingChecklist?.length > 0 && (
           <section>
             <PackingChecklist checklist={data.packingChecklist} />
+          </section>
+        )}
+
+        {/* Nearby Destinations */}
+        {data.nearbyDestinations?.length > 0 && (
+          <section>
+            <h2 className="section-title">
+              <span className="section-icon">🧭</span>
+              Nearby Destinations
+            </h2>
+            <NearbyDestinations destinations={data.nearbyDestinations} />
           </section>
         )}
 

@@ -9,7 +9,7 @@ const buildItineraryTemplate = (destination, days) => {
     if (i === 1) title = `Arrival & First Impressions of ${destination}`;
     else if (i === days) title = `Final Day & Departure from ${destination}`;
     else title = `Day ${i} — Exploring ${destination}`;
-    arr.push(`    {\n      "day": ${i},\n      "title": "${title}",\n      "morning": "Specific morning activities in ${destination} for day ${i} (8AM–12PM)",\n      "afternoon": "Specific afternoon activities in ${destination} for day ${i} (12PM–5PM)",\n      "evening": "Specific evening activities or dining in ${destination} for day ${i} (5PM–10PM)"\n    }`);
+    arr.push(`    {\n      "day": ${i},\n      "title": "${title}",\n      "morning": "Specific morning activities in ${destination} for day ${i} (8AM–12PM)",\n      "afternoon": "Specific afternoon activities in ${destination} for day ${i} (12PM–5PM)",\n      "evening": "Specific evening activities or dining in ${destination} for day ${i} (5PM–10PM)",\n      "keyLocations": ["real place name 1 in ${destination}", "real place name 2 in ${destination}", "real place name 3 in ${destination}"]\n    }`);
   }
   return arr.join(',\n');
 };
@@ -126,6 +126,54 @@ ${buildItineraryTemplate(destination, days)}
       "category": "${tripPurpose.charAt(0).toUpperCase() + tripPurpose.slice(1)} Essentials",
       "items": ["item1", "item2"]
     }
+  ],
+  "visaInfo": {
+    "required": "true/false/depends",
+    "visaType": "Visa Required|Visa on Arrival|e-Visa|Visa Free",
+    "maxStay": "e.g. 30 days",
+    "notes": "1-2 sentence practical note about visa for travelers from ${source} to ${destination}",
+    "applyAt": "official website URL or embassy name"
+  },
+  "nearbyDestinations": [
+    {
+      "name": "nearby city or place name",
+      "distance": "~X km or X hours from ${destination}",
+      "why": "one compelling reason to visit",
+      "tags": ["tag1", "tag2"]
+    }
+  ],
+  "hotels": [
+    {
+      "name": "real hotel name in ${destination}",
+      "category": "Budget",
+      "description": "1-2 sentence description",
+      "pricePerNight": "realistic price in local currency",
+      "location": "area or street in ${destination}"
+    },
+    {
+      "name": "real hotel name in ${destination}",
+      "category": "Mid-Range",
+      "description": "1-2 sentence description",
+      "pricePerNight": "realistic price in local currency",
+      "location": "area or street in ${destination}"
+    },
+    {
+      "name": "real hotel name in ${destination}",
+      "category": "Luxury",
+      "description": "1-2 sentence description",
+      "pricePerNight": "realistic price in local currency",
+      "location": "area or street in ${destination}"
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "real restaurant name in ${destination}",
+      "cuisine": "cuisine type",
+      "description": "1-2 sentence description",
+      "priceRange": "price range in local currency",
+      "signatureDish": "must-try dish name",
+      "location": "area or street in ${destination}"
+    }
   ]
 }
 
@@ -141,6 +189,10 @@ CRITICAL REQUIREMENTS:
 - Tailor ALL recommendations (budget, activities, food, tips) to the traveller profile: ${travellerType}, ${budgetLevel} budget, ${tripPurpose} trip
 - PackingChecklist must be specific to ${destination}'s climate, the trip purpose (${tripPurpose}), and duration (${days} days)
 - Be specific — no generic placeholder text
+- Include exactly 3 hotels (one Budget, one Mid-Range, one Luxury) and 4-5 restaurants
+- Include 3-5 nearby destinations within day-trip distance from ${destination}
+- visaInfo must reflect REAL visa rules for travelers from ${source} country → ${destination} country
+- keyLocations in each itinerary day must be real, geocodeable place names in ${destination}
 `.trim();
 };
 
