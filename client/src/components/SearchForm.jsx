@@ -187,18 +187,34 @@ const SearchForm = ({ onSearch, loading, hasPlan }) => {
   const [tripPurpose, setTripPurpose] = useState('cultural');
   const [numTravellers, setNumTravellers] = useState(1);
 
-  // Track what was submitted last to detect stale prefs
-  const [submittedKey, setSubmittedKey] = useState(null);
+  // Track the last submitted route key (source/dest/dates) — prefs auto-regen, route needs manual submit
+  const [submittedRouteKey, setSubmittedRouteKey] = useState(null);
 
   const days = calcDays(startDate, endDate);
+  const routeKey = `${source}|${destination}|${startDate}|${endDate}`;
+  const isStale = hasPlan && submittedRouteKey !== null && routeKey !== submittedRouteKey;
 
-  const currentKey = `${source}|${destination}|${startDate}|${endDate}|${travellerType}|${budgetLevel}|${tripPurpose}|${numTravellers}`;
-  const isStale = hasPlan && submittedKey !== null && currentKey !== submittedKey;
+  // Called when a preference chip changes — immediately regenerates the plan if one exists
+  const triggerRegen = useCallback((overrides = {}) => {
+    if (!hasPlan || loading) return;
+    const src = source.trim();
+    const dst = destination.trim();
+    if (!src || !dst) return;
+    const tt = overrides.travellerType ?? travellerType;
+    const bl = overrides.budgetLevel ?? budgetLevel;
+    const tp = overrides.tripPurpose ?? tripPurpose;
+    const nt = overrides.numTravellers ?? numTravellers;
+    setSubmittedRouteKey(routeKey);
+    onSearch(src, dst, startDate, endDate, days || 3, {
+      travellerType: tt, budgetLevel: bl, tripPurpose: tp,
+      numTravellers: parseInt(nt) || 1,
+    });
+  }, [hasPlan, loading, source, destination, travellerType, budgetLevel, tripPurpose, numTravellers, startDate, endDate, days, onSearch, routeKey]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!source.trim() || !destination.trim()) return;
-    setSubmittedKey(currentKey);
+    setSubmittedRouteKey(routeKey);
     onSearch(source.trim(), destination.trim(), startDate, endDate, days || 3, {
       travellerType,
       budgetLevel,
@@ -311,28 +327,34 @@ const SearchForm = ({ onSearch, loading, hasPlan }) => {
 
         {/* Traveller type + number */}
         <div className="pref-row">
-          <ChipGroup label="👤 Traveller Type" options={TRAVELLER_TYPES} value={travellerType} onChange={setTravellerType} disabled={loading} />
+          <ChipGroup label="👤 Traveller Type" options={TRAVELLER_TYPES} value={travellerType}
+            onChange={(val) => { setTravellerType(val); triggerRegen({ travellerType: val }); }}
+            disabled={loading} />
           <div className="search-field traveller-count-field">
             <div className="search-label" style={{ marginBottom: 8 }}>🧑‍🤝‍🧑 No. of Travellers</div>
             <div className="traveller-count">
-              <button type="button" className="count-btn" onClick={() => setNumTravellers(n => Math.max(1, n - 1))} disabled={loading || numTravellers <= 1}>−</button>
+              <button type="button" className="count-btn" onClick={() => { const n = Math.max(1, numTravellers - 1); setNumTravellers(n); triggerRegen({ numTravellers: n }); }} disabled={loading || numTravellers <= 1}>−</button>
               <span className="count-num">{numTravellers}</span>
-              <button type="button" className="count-btn" onClick={() => setNumTravellers(n => Math.min(20, n + 1))} disabled={loading || numTravellers >= 20}>+</button>
+              <button type="button" className="count-btn" onClick={() => { const n = Math.min(20, numTravellers + 1); setNumTravellers(n); triggerRegen({ numTravellers: n }); }} disabled={loading || numTravellers >= 20}>+</button>
             </div>
           </div>
         </div>
 
         {/* Budget level */}
-        <ChipGroup label="💰 Budget" options={BUDGET_LEVELS} value={budgetLevel} onChange={setBudgetLevel} disabled={loading} />
+        <ChipGroup label="💰 Budget" options={BUDGET_LEVELS} value={budgetLevel}
+          onChange={(val) => { setBudgetLevel(val); triggerRegen({ budgetLevel: val }); }}
+          disabled={loading} />
 
         {/* Trip purpose */}
-        <ChipGroup label="🎯 Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose} onChange={setTripPurpose} disabled={loading} />
+        <ChipGroup label="🎯 Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose}
+          onChange={(val) => { setTripPurpose(val); triggerRegen({ tripPurpose: val }); }}
+          disabled={loading} />
 
-        {/* Stale prefs nudge */}
+        {/* Stale route nudge — shown when source/destination/dates changed after last generation */}
         {isStale && (
           <div className="stale-banner">
             <span>🔄</span>
-            <span>Preferences changed — click <strong>Regenerate</strong> to update your plan.</span>
+            <span>Route or dates changed — click <strong>Regenerate</strong> to update your plan.</span>
           </div>
         )}
 
