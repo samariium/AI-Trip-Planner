@@ -117,26 +117,49 @@ const MapView = ({ sourceCoords, destCoords, source, destination, attractions = 
 
   const geocodeHotels = async () => {
     if (!hotels?.length) return;
+    await new Promise(r => setTimeout(r, 7000)); // stagger: after attractions
     const results = [];
     for (const h of hotels.slice(0, 3)) {
       try {
-        const coords = await geocode(`${h.name}, ${destination}`);
+        // AI hotel names are fictional — geocode by area/location first
+        const queries = [
+          h.location ? `${h.location}, ${destination}` : null,
+          `${h.name}, ${destination}`,
+          destination,
+        ].filter(Boolean);
+        let coords = null;
+        for (const q of queries) {
+          coords = await geocode(q);
+          if (coords) break;
+          await new Promise(r => setTimeout(r, 800));
+        }
         if (coords) results.push({ ...h, ...coords });
       } catch { /* skip */ }
-      await new Promise(r => setTimeout(r, 1100));
+      await new Promise(r => setTimeout(r, 1200));
     }
     setHotelCoords(results);
   };
 
   const geocodeRestaurants = async () => {
     if (!restaurants?.length) return;
+    await new Promise(r => setTimeout(r, 12000)); // stagger: after hotels
     const results = [];
     for (const r of restaurants.slice(0, 4)) {
       try {
-        const coords = await geocode(`${r.name}, ${destination}`);
+        const queries = [
+          r.location ? `${r.location}, ${destination}` : null,
+          `${r.name}, ${destination}`,
+          destination,
+        ].filter(Boolean);
+        let coords = null;
+        for (const q of queries) {
+          coords = await geocode(q);
+          if (coords) break;
+          await new Promise(r => setTimeout(r, 800));
+        }
         if (coords) results.push({ ...r, ...coords });
       } catch { /* skip */ }
-      await new Promise(r => setTimeout(r, 1100));
+      await new Promise(r => setTimeout(r, 1200));
     }
     setRestCoords(results);
   };
