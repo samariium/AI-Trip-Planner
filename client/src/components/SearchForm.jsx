@@ -77,7 +77,8 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
   const updatePos = useCallback(() => {
     if (!inputRef.current) return;
     const r = inputRef.current.getBoundingClientRect();
-    setDropPos({ top: r.bottom + window.scrollY + 4, left: r.left + window.scrollX, width: r.width });
+    // position:fixed uses viewport coords — getBoundingClientRect already returns those
+    setDropPos({ top: r.bottom + 4, left: r.left, width: r.width });
   }, []);
 
   const fetchSuggestions = useCallback(async (q) => {
@@ -135,7 +136,7 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
     <ul
       className="loc-dropdown"
       role="listbox"
-      style={{ position: 'absolute', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 99999 }}
+      style={{ position: 'fixed', top: dropPos.top, left: dropPos.left, width: dropPos.width, zIndex: 99999 }}
     >
       {suggestions.map((s, i) => (
         <li key={i} className="loc-option" role="option" onMouseDown={() => handleSelect(s)}>
