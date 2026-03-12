@@ -225,7 +225,8 @@ function App() {
         <p>
           © {new Date().getFullYear()} AI Trip Planner &nbsp;•&nbsp;
           Powered by Groq &amp; Gemini AI &nbsp;•&nbsp;
-          Maps by <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>
+          Maps by <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &nbsp;•&nbsp;
+          <a href="https://github.com/samariium/AI-Trip-Planner" target="_blank" rel="noopener noreferrer">GitHub</a>
         </p>
       </footer>
     </div>

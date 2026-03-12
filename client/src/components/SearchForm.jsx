@@ -42,6 +42,7 @@ const TRIP_PURPOSES = [
   { value: 'cultural', label: 'Cultural', icon: '🏛️' },
   { value: 'pilgrimage', label: 'Pilgrimage', icon: '🕌' },
   { value: 'honeymoon', label: 'Honeymoon', icon: '💍' },
+  { value: 'work', label: 'Work', icon: '💼' },
 ];
 
 const ChipGroup = ({ label, options, value, onChange, disabled }) => (
@@ -316,7 +317,7 @@ const SearchForm = ({ onSearch, loading }) => {
         </div>
 
         {/* Budget level */}
-        <ChipGroup label="💰 Budget Level" options={BUDGET_LEVELS} value={budgetLevel} onChange={setBudgetLevel} disabled={loading} />
+        <ChipGroup label="💰 Budget" options={BUDGET_LEVELS} value={budgetLevel} onChange={setBudgetLevel} disabled={loading} />
 
         {/* Trip purpose */}
         <ChipGroup label="🎯 Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose} onChange={setTripPurpose} disabled={loading} />

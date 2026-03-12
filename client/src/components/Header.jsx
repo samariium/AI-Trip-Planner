@@ -4,11 +4,11 @@ const Header = ({ theme, onToggleTheme }) => (
       <div className="header-logo">
         <span className="header-logo-icon">✈️</span>
         <div className="header-logo-text">
-          AI <span>Trip</span> Planner
+          <div>AI <span>Trip</span> Planner</div>
+          <div style={{ fontSize: '0.62rem', fontWeight: 500, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: 1 }}>Smart Travel Intelligence</div>
         </div>
       </div>
       <div className="header-right">
-        <span className="header-tagline">Smart Travel Intelligence</span>
         <button
           className="theme-toggle"
           onClick={onToggleTheme}

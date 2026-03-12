@@ -19,7 +19,7 @@ const planTrip = async (req, res) => {
     const eDate = endDate ? String(endDate).slice(0, 10) : null;
     const travType = ['solo','couple','family','backpacker','business'].includes(travellerType) ? travellerType : 'solo';
     const budgetLvl = ['budget','midrange','luxury'].includes(budgetLevel) ? budgetLevel : 'midrange';
-    const purpose = ['adventure','relaxation','cultural','pilgrimage','honeymoon'].includes(tripPurpose) ? tripPurpose : 'cultural';
+    const purpose = ['adventure','relaxation','cultural','pilgrimage','honeymoon','work'].includes(tripPurpose) ? tripPurpose : 'cultural';
     const numTravellers = Math.min(Math.max(parseInt(rawNum) || 1, 1), 20);
 
     if (src.length < 2 || dst.length < 2) {
