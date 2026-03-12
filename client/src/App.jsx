@@ -121,7 +121,7 @@ function App() {
               Enter your source and destination to instantly get AI-generated travel options,
               interactive maps, top attractions, local foods, and on-ground assistance contacts.
             </p>
-            <SearchForm onSearch={handlePlanTrip} loading={loading} />
+            <SearchForm onSearch={handlePlanTrip} loading={loading} hasPlan={!!travelPlan} />
 
             {recents.length > 0 && !travelPlan && !loading && (
               <div className="recents">

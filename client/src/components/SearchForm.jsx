@@ -177,7 +177,7 @@ const LocationInput = ({ id, label, icon, placeholder, value, onChange, disabled
   );
 };
 
-const SearchForm = ({ onSearch, loading }) => {
+const SearchForm = ({ onSearch, loading, hasPlan }) => {
   const [source, setSource] = useState('');
   const [destination, setDestination] = useState('');
   const [startDate, setStartDate] = useState(shiftDate(todayStr(), 1));
@@ -187,11 +187,18 @@ const SearchForm = ({ onSearch, loading }) => {
   const [tripPurpose, setTripPurpose] = useState('cultural');
   const [numTravellers, setNumTravellers] = useState(1);
 
+  // Track what was submitted last to detect stale prefs
+  const [submittedKey, setSubmittedKey] = useState(null);
+
   const days = calcDays(startDate, endDate);
+
+  const currentKey = `${source}|${destination}|${startDate}|${endDate}|${travellerType}|${budgetLevel}|${tripPurpose}|${numTravellers}`;
+  const isStale = hasPlan && submittedKey !== null && currentKey !== submittedKey;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!source.trim() || !destination.trim()) return;
+    setSubmittedKey(currentKey);
     onSearch(source.trim(), destination.trim(), startDate, endDate, days || 3, {
       travellerType,
       budgetLevel,
@@ -321,11 +328,23 @@ const SearchForm = ({ onSearch, loading }) => {
         {/* Trip purpose */}
         <ChipGroup label="🎯 Trip Purpose" options={TRIP_PURPOSES} value={tripPurpose} onChange={setTripPurpose} disabled={loading} />
 
+        {/* Stale prefs nudge */}
+        {isStale && (
+          <div className="stale-banner">
+            <span>🔄</span>
+            <span>Preferences changed — click <strong>Regenerate</strong> to update your plan.</span>
+          </div>
+        )}
+
         {/* Submit */}
-        <button type="submit" className="search-btn" disabled={loading || !source.trim() || !destination.trim()}>
+        <button type="submit" className={`search-btn${isStale ? ' stale-pulse' : ''}`} disabled={loading || !source.trim() || !destination.trim()}>
           {loading ? (
             <>
               <span style={{ display: 'inline-block', animation: 'spin 1s linear infinite' }}>⏳</span> Planning...
+            </>
+          ) : isStale ? (
+            <>
+              <span>🔄</span> Regenerate Plan
             </>
           ) : (
             <>

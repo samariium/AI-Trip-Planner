@@ -460,6 +460,28 @@ main { flex: 1; }
   transform: none;
 }
 .search-btn.loading { animation: pulse-bg 1.5s ease-in-out infinite; }
+.search-btn.stale-pulse {
+  background: linear-gradient(135deg, #f97316 0%, #ef4444 50%, #f59e0b 100%);
+  box-shadow: 0 4px 20px rgba(249,115,22,0.5);
+  animation: stale-glow 2s ease-in-out infinite;
+}
+@keyframes stale-glow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(249,115,22,0.4); }
+  50%       { box-shadow: 0 4px 32px rgba(249,115,22,0.8); }
+}
+.stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(249,115,22,0.12);
+  border: 1px solid rgba(249,115,22,0.35);
+  border-radius: var(--radius-sm);
+  padding: 10px 16px;
+  font-size: 0.85rem;
+  color: #fdba74;
+  margin-bottom: 12px;
+  animation: slideUp 0.3s ease;
+}
 @keyframes pulse-bg {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.75; }
